@@ -27,27 +27,24 @@ class qipan(object):
 		telist=[[],[],[],[]]             
 		for i in range(4):
 			telist[i].append(self.num[i][0])
-			added=False
+			added=False														#用来判断之前的数据是家和得来还是直接移过来的
 			for j in range(1,4):
 				try:
 					while self.num[i][j]==0:
-						del self.num[i][j]
-
-					# print(j)
-					if self.num[i][j]==telist[i][-1] and added!=True:
-						telist[i][-1]+=self.num[i][j]
-						added=True
+						del self.num[i][j]									#如果某项为0,则将其删掉，后面的项自动填充到此项
+					if self.num[i][j]==telist[i][-1] and added==False:		#如果此项同变化后数组最后一项相同，且变化后数组最后一项不十合并得到
+						telist[i][-1]+=self.num[i][j]						#进行合并
+						added=True  										#将判断是否为合并得来到值更新为真
 					else:
-						telist[i].append(self.num[i][j])
+						telist[i].append(self.num[i][j])					#如果不相同，或者为合并得来，则直接将数据添加到变化后到数组中。
 						added=False
-				except IndexError:
+				except IndexError:											#如果有删除，则会造成数组索引超出长度
 					pass
-			if telist[i][0]==0:
+			if telist[i][0]==0:												#判断之前底部到值是否是0,如果为0,则删除。
 				del telist[i][0]
 
-			for x in range(4-len(telist[i])):
+			for x in range(4-len(telist[i])):								#通过数组的长度来判断有多少位需要补0
 				telist[i].append(0)
-			# print(telist[i])
 		self.num=telist.copy()
 
 
@@ -57,12 +54,12 @@ def randomnum(orginlist):
 	for i in range(0,4):
 		for j in range(0,4):
 			if orginlist[i][j]==0:
-				rownum.append([i,j])
+				rownum.append([i,j])										#将为0的项的坐标添加到数组
 				print("%s,%s |" %(i,j),end="")
 	print("\n")
 	if rownum!=[]:
-		seed=random.choice(range(0,len(rownum)))
-		orginlist[rownum[seed][0]][rownum[seed][1]]=random.choice([2,2,4])
+		seed=random.choice(range(0,len(rownum)))							#随机挑选一行
+		orginlist[rownum[seed][0]][rownum[seed][1]]=random.choice([2,2,4])	#从2,2，4中随机挑选。改变这个数组2和4的比例可以改变初夏2和4的机会
 		return orginlist
 	else:
 		print("gameover")
@@ -107,13 +104,13 @@ class treatnum(object):
 	"""生成屏幕窗口部件，包括数字更新，结束提示"""
 	def __init__(self):
 		self.fontobj=pygame.font.SysFont('Arial',80)
-		self.status=1
+		self.status=1									#状态编号，用于判定此时界面处于那个界面。1为初始界面，2为棋盘界面，3为结束界面
 	def recation(self,screen,num):
+		'''显示棋盘界面，包括棋盘布局，棋盘数字显示，棋盘各个方格颜色变化'''
 		screen.fill((0,0,0))
 		self.status=2		
 		text=[[],[],[],[]]
 		for i in range(0,800,200):
-
 			for j in range(0,800,200):
 				if num[i//200][j//200]!=0:
 					textsurfaceobj=self.fontobj.render(u'%s' %num[i//200][j//200],True,(0,0,123),)
@@ -125,14 +122,13 @@ class treatnum(object):
 					r=200
 					g=200
 					b=200
-
-
 				squre=pygame.draw.rect(screen,[r,g,b],((j+2,i+2),(196,196)))
 				textrectobj=textsurfaceobj.get_rect()
 				textrectobj.center=(j+100,i+100)
 				screen.blit(textsurfaceobj,textrectobj)
 
 	def gameover(self,screen):
+		'''显示游戏结束界面'''
 		self.status=3
 		gamealert=pygame.font.SysFont("Arial",100)
 		alertsurfaceobj=gamealert.render(u'GAME OVER!',True,(255,0,0),(0,255,0))
@@ -141,6 +137,7 @@ class treatnum(object):
 		screen.blit(alertsurfaceobj,alertrectobj)
 
 	def start(self,screen):
+		'''设定初始界面，包括各个按键到位置，显示文字等'''
 		self.status=1
 		screen.fill((69,132,85))
 		titlesurfaceobj=self.fontobj.render(u'2048',True,(0,0,0),)
@@ -165,17 +162,19 @@ class file(object):
 		self.num=[]
 		self.record={}
 	def histroynumget(self):
+		'''获得历史记录，若失败进行初始化'''
 		try:
 			with open("historyrecord.txt",'rt') as fileobj:
 				text=(fileobj.read()).replace("\n","")
 				jsontext=json.loads(text)
 				print(jsontext)
 				try:
-					self.num=jsontext[latest_num]
+					self.num=jsontext["latest_num"]
 				except:
 					self.num=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
 				try:
-					self.record=jsontext[Rank]
+					self.record=jsontext["Rank"]
+					print(type(self.record))
 				except:
 					self.record={}
 		except:
@@ -183,42 +182,56 @@ class file(object):
 				self.record={}
 
 	def writerecord(self,num,score):
-		try:
-			with open("historyrecord.txt",'rt') as fileobj:
-				jsontext=json.load(fileobj)
-		except:
+		'''写入数据到记录中'''
+		recorlist=[]
+		historydict={}
+		recordict={}
+		print(self.record,type(self.record))
+		if self.record!={}:
+			for k,scor in self.record.items():
+				recorlist.append(scor)
+		else:
 			pass
+		recorlist.append(score)
+		recorlist.sort(reverse=True)
+		print(recorlist)
+		for i in range(0,5):
+			if i<=len(recorlist)-1:
+				recordict["NO."+str(i+1)]=recorlist[i]
+			else:
+				recordict["NO."+str(i+1)]=0
+		historydict['latest_num']=num
+		historydict['Rank']=recordict
+		jsonstr=json.dumps(historydict)
+		print(jsonstr)
+		with open("historyrecord.txt",'wt') as fileobj:
+			fileobj.write(jsonstr)
 
 if __name__ == '__main__':
-	'''
 
-	'''
-	pygame.init()
-	screen=pygame.display.set_mode((800,800),RESIZABLE,32)
-	pygame.display.set_caption("2048")
-	screen.fill((0,0,0))
-	tr=treatnum()
-	tr.start(screen)
-	fil=file()
-	fil.histroynumget()
-	print(fil.num)
-	pygame.display.flip()
-	qi=qipan(fil.num)
-	temp=qi.num
+	pygame.init()												#初始化
+	screen=pygame.display.set_mode((800,800),RESIZABLE,32)		#生成屏幕，大小可调
+	pygame.display.set_caption("2048")							#设置标题
+	screen.fill((0,0,0))										#填充初始颜色
+	tr=treatnum()												#初始化一个数据显示处理，包括开始界面，棋盘界面和游戏结束界面的实例
+	tr.start(screen)											#生成开始界面
+	fil=file()													#初始化一个从历史记录中读取数据，以及保存数据的实例
+	fil.histroynumget()											#读取历史数据
+	print(fil.num)								
+	pygame.display.flip()										#刷新显示
+	qi=qipan(fil.num)											#初始化一个棋盘类，包括初始数组重置，数组根据指令进行变换得到新的数组。
+	temp=qi.num 												#设置一个临时变量保存处理之前数组的值，与处理之后到值进行比较，帮助判断变换之前棋盘是否有变化。
 	while True:
 		for event in pygame.event.get():
 			if event.type==QUIT:
 				exit()
-			if tr.status==2:
-				# print("1 left clicked!")
+			if tr.status==2:								#判断是否在棋盘界面下面
 				if event.type==KEYDOWN:
 					if event.key==K_DOWN:
-						#逆时针旋转90度
-						qi.num=clockwise(qi.num)
-						qi.operate()
-						qi.num=unclockwise(qi.num)
+						qi.num=clockwise(qi.num)			#先将数组顺时针旋转90
+						qi.operate()						#将数组向左进行变换，包括合并，移位
+						qi.num=unclockwise(qi.num)			#再将数组逆时针旋转90
 					if event.key==K_UP:
-						#顺时针旋转90度
 						qi.num=unclockwise(qi.num)
 						qi.operate()
 						qi.num=clockwise(qi.num)
@@ -247,26 +260,25 @@ if __name__ == '__main__':
 							qi.num=check
 							temp=qi.num
 							tr.recation(screen,qi.num)
-			elif tr.status==1:
-				# print("0 left clicked!")
+			elif tr.status==1:								#判断是否在开始界面下
 				if event.type==MOUSEBUTTONDOWN:
 					Pressedarry=pygame.mouse.get_pressed()
+					print(Pressedarry)
 					pos=pygame.mouse.get_pos()
 					print(pos)
 					for index in range(len(Pressedarry)):
 						if Pressedarry[index]:
 							if index==0:
-								if 100<pos[0] and pos[0]<250 and 300<pos[1] and pos[1]<400:
-									tr.recation(screen,num)
-								if 100<pos[0] and pos[0]<300 and 600<pos[1] and pos[1]<700:
+								if 100<pos[0] and pos[0]<250 and 300<pos[1] and pos[1]<400:		#判断是否在start按钮区域
+									tr.recation(screen,fil.num)									#点击start按钮，载入上次数组，进行显示
+								if 100<pos[0] and pos[0]<300 and 600<pos[1] and pos[1]<700:		#判断是否在restat按钮区域
 
-									qi.restart()
-									num=qi.num
-									tr.recation(screen,num)
+									qi.restart()												#点击restart按钮，棋盘的数组全部置0,然后生成一个随机数（2,4）
+									num=qi.num 													#得到num
+									tr.recation(screen,num)										#使用新到num进行显示
 							else:
-								pass
-			elif tr.status==3:
-				# print("3 left clicked!")
+								pass															#没有点到有效区域不动作
+			elif tr.status==3:																	#在界面3时（即提示game over时）
 				if event.type==MOUSEBUTTONDOWN:
 					Pressedarry=pygame.mouse.get_pressed()
 					pos=pygame.mouse.get_pos()
@@ -274,8 +286,7 @@ if __name__ == '__main__':
 						if Pressedarry[index]:
 							if index==0:
 								if 150<pos[0] and pos[0]<650 and 300<pos[1] and pos[1]<500:
-									tr.start(screen)
+									fil.writerecord(qi.num,34556)
+									tr.start(screen)										#点击game over区域后回到初始界面。
 
-			# printnum(qi.num)
-				
 		pygame.display.update()
